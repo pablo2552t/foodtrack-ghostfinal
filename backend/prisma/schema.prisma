@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      UserRole @default(CLIENTE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+
+  @@map("users")
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal     @db.Decimal(10, 2)
+  imageUrl    String?
+  category    String
+  available   Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  code       String      @unique
+  customerId String?
+  total      Decimal     @db.Decimal(10, 2)
+  status     OrderStatus @default(PREPARING)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  items      OrderItem[]
+  customer   User?       @relation(fields: [customerId], references: [id])
+
+  @@index([code])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model IotDevice {
+  id         String     @id @default(uuid())
+  deviceName String     @unique
+  type       DeviceType
+  status     String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("iot_devices")
+}
+
+enum UserRole {
+  ADMINISTRADOR
+  COCINERO
+  CLIENTE
+}
+
+enum OrderStatus {
+  PREPARING
+  READY
+  DELIVERED
+}
+
+enum DeviceType {
+  LOCKER
+  SENSOR
+}

@@ -1,0 +1,5 @@
+{
+  "name": "FoodTrack Ghost",
+  "description": "Una aplicación web moderna para un restaurante fantasma que permite realizar pedidos y consultar su estado en tiempo real.",
+  "requestFramePermissions": []
+}
