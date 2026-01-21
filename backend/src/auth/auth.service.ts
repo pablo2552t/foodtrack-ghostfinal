@@ -128,56 +128,61 @@ export class AuthService {
                 description: 'Crujientes aros de cebolla con salsa de la casa',
                 price: 5.99,
                 category: 'Entradas',
-                imageUrl: '/uploads/aros-cebolla.png',
+                imageUrl: 'https://images.unsplash.com/photo-1639024471283-03518883512d?auto=format&fit=crop&w=800&q=80',
             },
             {
                 name: 'Bebida Grande',
                 description: 'Refresco de 1 litro',
                 price: 2.50,
                 category: 'Bebidas',
-                imageUrl: '/uploads/bebida-grande.png',
+                imageUrl: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80',
             },
             {
                 name: 'Cheeseburger Doble',
                 description: 'Doble carne, doble queso, lechuga y tomate',
                 price: 12.99,
                 category: 'Hamburguesas',
-                imageUrl: '/uploads/cheeseburger-doble.png',
+                imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
             },
             {
                 name: 'Hamburguesa Clásica',
                 description: 'Carne, queso, lechuga, tomate y cebolla',
                 price: 9.99,
                 category: 'Hamburguesas',
-                imageUrl: '/uploads/hamburguesa-clasica.png',
+                imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
             },
             {
                 name: 'Papas Fritas',
                 description: 'Papas fritas corte clásico',
                 price: 3.99,
                 category: 'Acompañamientos',
-                imageUrl: '/uploads/papas-fritas.png',
+                imageUrl: 'https://images.unsplash.com/photo-1573080496987-a199f8cd4058?auto=format&fit=crop&w=800&q=80',
             },
             {
                 name: 'Pizza Personal',
                 description: 'Pizza de pepperoni tamaño personal',
                 price: 8.99,
                 category: 'Pizzas',
-                imageUrl: '/uploads/pizza-personal.png',
+                imageUrl: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?auto=format&fit=crop&w=800&q=80',
             },
             {
                 name: 'Pollo Crispy',
                 description: 'Piezas de pollo empanizado crujiente',
                 price: 11.50,
                 category: 'Pollo',
-                imageUrl: '/uploads/pollo-crispy.png',
+                imageUrl: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?auto=format&fit=crop&w=800&q=80',
             },
         ];
 
         for (const product of products) {
-            // Simple check to avoid duplicates by name for this setup
+            // Update or Create to ensure images are updated
             const existing = await this.prisma.product.findFirst({ where: { name: product.name } });
-            if (!existing) {
+            if (existing) {
+                await this.prisma.product.update({
+                    where: { id: existing.id },
+                    data: { imageUrl: product.imageUrl }
+                });
+            } else {
                 await this.prisma.product.create({ data: product });
             }
         }
