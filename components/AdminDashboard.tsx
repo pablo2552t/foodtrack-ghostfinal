@@ -42,6 +42,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ orders = [], onUpdateSt
     }
   };
 
+  // User Form State
+  const [newUser, setNewUser] = useState({ name: '', username: '', password: '', role: 'cook' as Role });
+  const [userSuccessMsg, setUserSuccessMsg] = useState('');
+
+  // Stats
+  const totalRevenue = (orders || []).reduce((sum, order) => sum + Number(order.total), 0);
+  const totalOrders = (orders || []).length;
+  const activeOrders = (orders || []).filter(o => o.status !== OrderStatus.DELIVERED).length;
+  const completedOrders = (orders || []).filter(o => o.status === OrderStatus.DELIVERED).length;
+
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newUser.name && newUser.username && newUser.password) {
