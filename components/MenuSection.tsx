@@ -27,6 +27,19 @@ const MenuSection: React.FC<MenuSectionProps> = ({ onAddToCart, isGuest }) => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+  // Image validation and fallback
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.target as HTMLImageElement;
+    // Prevent infinite loops
+    if (target.src.includes('placehold.co')) return;
+
+    // Try to find a backup image from BACKUP_PRODUCTS based on category or name
+    const productName = target.alt;
+    const backup = BACKUP_PRODUCTS.find(p => p.name === productName) || BACKUP_PRODUCTS.find(p => p.category === (products.find(prod => prod.name === productName)?.category));
+
+    target.src = backup ? backup.image : 'https://placehold.co/400x300?text=No+Image';
+  };
+
   useEffect(() => {
     fetch(`${API_URL}/products`)
       .then(res => res.json())
@@ -38,6 +51,7 @@ const MenuSection: React.FC<MenuSectionProps> = ({ onAddToCart, isGuest }) => {
           description: p.description,
           price: Number(p.price),
           category: p.category,
+          // Use image URL from API, but we will handle errors in the <img> tag
           image: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${API_URL}${p.imageUrl}`) : 'https://placehold.co/400x300?text=No+Image'
         }));
         setProducts(mapped);
@@ -199,6 +213,7 @@ const MenuSection: React.FC<MenuSectionProps> = ({ onAddToCart, isGuest }) => {
               <img
                 src={itemImage(selectedProduct)}
                 alt={selectedProduct.name}
+                onError={handleImageError}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute bottom-4 left-4 z-20">

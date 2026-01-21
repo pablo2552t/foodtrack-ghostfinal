@@ -6,6 +6,7 @@ import { Role, UserAccount } from '../types';
 interface LandingPageProps {
   onLogin: (name: string, role: Role, username?: string) => void;
   onVerifyStaff: (username: string, password: string) => Promise<UserAccount | null>;
+  onRegister: (name: string, username: string, password: string) => Promise<UserAccount | null>;
 }
 
 const GHOST_REVIEWS = [
@@ -16,11 +17,13 @@ const GHOST_REVIEWS = [
   { text: "5 estrellas oscuras.", author: "Grim Reaper", role: "Gerente de Logística" },
 ];
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onVerifyStaff }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onVerifyStaff, onRegister }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState(''); // New for register
   const [guestName, setGuestName] = useState('');
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isLoginMode, setIsLoginMode] = useState(true); // true = Private Access (Login/Register), false = Guest
+  const [isRegistering, setIsRegistering] = useState(false); // Toggle between Login and Register
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showStory, setShowStory] = useState(false);
@@ -75,16 +78,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onVerifyStaff }) => 
       await new Promise(r => setTimeout(r, 1500)); // Dramatic Entry Delay
 
       if (isLoginMode) {
-        if (!username || !password) {
+        if (!username || !password || (isRegistering && !name)) {
           throw new Error('Por favor completa todos los campos.');
         }
 
-        const user = await onVerifyStaff(username, password);
+        let user;
+        if (isRegistering) {
+          user = await onRegister(name, username, password);
+        } else {
+          user = await onVerifyStaff(username, password);
+        }
+
         if (user) {
           onLogin(user.name, user.role, user.username);
           // Don't reset loading here - let the parent component handle transition
         } else {
-          throw new Error('Credenciales incorrectas. Intenta de nuevo.');
+          throw new Error(isRegistering ? 'Error al registrarse.' : 'Credenciales incorrectas. Intenta de nuevo.');
         }
       } else {
         if (!guestName.trim()) {
@@ -308,6 +317,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onVerifyStaff }) => 
             <div className="space-y-6 mb-8">
               {isLoginMode ? (
                 <>
+                  {isRegistering && (
+                    <div className="space-y-2 animate-fadeIn">
+                      <label className="text-[10px] font-bold text-[var(--neon-orange)] uppercase tracking-[0.2em] ml-1">Tu Nombre</label>
+                      <div className="relative group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-[var(--neon-orange)] transition-colors z-10">
+                          <User size={18} />
+                        </div>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-[var(--neon-orange)] focus:bg-black/60 transition-all font-medium font-mono text-sm shadow-inner"
+                          placeholder="TU NOMBRE"
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-[var(--neon-orange)] uppercase tracking-[0.2em] ml-1">Usuario</label>
                     <div className="relative group">
@@ -339,6 +365,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onVerifyStaff }) => 
                         placeholder="••••••••"
                       />
                     </div>
+                  </div>
+                  <div className="text-center pt-2">
+                    <button
+                      onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
+                      className="text-xs text-[var(--neon-orange)] hover:text-white transition-colors underline decoration-dotted"
+                    >
+                      {isRegistering ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí'}
+                    </button>
                   </div>
                 </>
               ) : (

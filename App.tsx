@@ -116,6 +116,36 @@ function App() {
     return foundUser || null;
   };
 
+  const handleRegister = async (name: string, username: string, password: string): Promise<UserAccount | null> => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, username, password })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Register returns the user, we can auto-login or ask to login.
+        // Let's auto-login (return the user object similar to verifyStaffCredentials)
+        // Usually register returns just the user or a message.
+        // If it returns user, we might need to login separately or if it returns token.
+        // Assuming it works similar to login or we call login afterwards.
+
+        // Let's call login immediately
+        return verifyStaffCredentials(username, password);
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Error al registrarse');
+      }
+    } catch (e) {
+      console.warn("Registration failed", e);
+      addToast(`Error: ${e instanceof Error ? e.message : 'Fallo en registro'}`, 'error');
+      return null;
+    }
+  };
+
   const handleLogout = () => {
     setUser(null);
     setIsGuest(false);
@@ -320,6 +350,7 @@ function App() {
             }
           }}
           onVerifyStaff={verifyStaffCredentials}
+          onRegister={handleRegister}
         />
       )}
 
