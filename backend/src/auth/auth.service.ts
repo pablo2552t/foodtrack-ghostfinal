@@ -94,6 +94,18 @@ export class AuthService {
         return result;
     }
 
+    async findAll() {
+        return this.prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                role: true,
+                createdAt: true,
+            }
+        });
+    }
+
     async setup() {
         // Create Admin
         const adminPassword = await bcrypt.hash('admin123', 10);

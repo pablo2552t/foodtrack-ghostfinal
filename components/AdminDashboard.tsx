@@ -14,15 +14,33 @@ interface AdminDashboardProps {
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ orders = [], onUpdateStatus, users = [], onAddUser, onDeleteUser }) => {
   const [activeSection, setActiveSection] = useState<'orders' | 'users' | 'menu' | 'analytics'>('orders');
 
-  // User Form State
-  const [newUser, setNewUser] = useState({ name: '', username: '', password: '', role: 'cook' as Role });
-  const [userSuccessMsg, setUserSuccessMsg] = useState('');
+  /* USER MANAGEMENT STATE */
+  const [allUsers, setAllUsers] = useState<UserAccount[]>(users);
 
-  // Stats
-  const totalRevenue = (orders || []).reduce((sum, order) => sum + Number(order.total), 0);
-  const totalOrders = (orders || []).length;
-  const activeOrders = (orders || []).filter(o => o.status !== OrderStatus.DELIVERED).length;
-  const completedOrders = (orders || []).filter(o => o.status === OrderStatus.DELIVERED).length;
+  // Fetch users when entering Users section
+  React.useEffect(() => {
+    if (activeSection === 'users') {
+      fetchUsers();
+    }
+  }, [activeSection]);
+
+  // Sync props if needed, but local fetch takes precedence
+  React.useEffect(() => {
+    if (users.length > 0 && allUsers.length === 0) setAllUsers(users);
+  }, [users]);
+
+  const fetchUsers = async () => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/auth/users`);
+      if (res.ok) {
+        const data = await res.json();
+        setAllUsers(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch users", e);
+    }
+  };
 
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,18 +65,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ orders = [], onUpdateSt
 
         if (res.ok) {
           const createdUser = await res.json();
+          // Update local list
+          setAllUsers(prev => [...prev, {
+            id: createdUser.id,
+            name: createdUser.name,
+            username: createdUser.username,
+            password: '', // Don't store password locally
+            role: newUser.role
+          }]);
+
           if (onAddUser) {
             onAddUser({
               id: createdUser.id,
               name: createdUser.name,
               username: createdUser.username,
-              password: newUser.password, // Keep local for display/fallback if needed
+              password: newUser.password,
               role: newUser.role
             });
           }
           setNewUser({ name: '', username: '', password: '', role: 'cook' });
           setUserSuccessMsg(`Usuario ${newUser.name} creado correctamente en el servidor.`);
           setTimeout(() => setUserSuccessMsg(''), 3000);
+          fetchUsers(); // Refresh list to be sure
         } else {
           const err = await res.json();
           alert(`Error al crear usuario: ${err.message}`);
@@ -69,6 +97,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ orders = [], onUpdateSt
       }
     }
   };
+
 
   const getStatusBadge = (status: OrderStatus) => {
     switch (status) {
@@ -463,24 +492,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ orders = [], onUpdateSt
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loadingProducts ? <p className="text-white font-mono animate-pulse">Consultando el grimorio...</p> : products.map(p => (
-              <div key={p.id} className="glass-panel bg-black/60 rounded-2xl border border-white/10 overflow-hidden flex flex-col group hover:border-white/30 transition-all duration-500">
-                <div className="h-48 bg-slate-900 relative overflow-hidden">
-                  <img src={p.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={p.name} />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 backdrop-blur-sm">
-                    <button onClick={() => openEditProduct(p)} className="bg-white text-black p-3 rounded-full hover:bg-[var(--neon-cyan)] hover:scale-110 transition-all shadow-lg"><TrendingUp size={20} /></button>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="bg-red-500 text-white p-3 rounded-full hover:bg-red-600 hover:scale-110 transition-all shadow-lg shadow-red-500/30"><Trash2 size={20} /></button>
+            {loadingProducts ? <p className="text-white font-mono animate-pulse">Consultando el grimorio...</p> : products.map(p => {
+              const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+              const imgSrc = p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${API_URL}${p.imageUrl}`) : 'https://placehold.co/400x300?text=No+Image';
+
+              return (
+                <div key={p.id} className="glass-panel bg-black/60 rounded-2xl border border-white/10 overflow-hidden flex flex-col group hover:border-white/30 transition-all duration-500">
+                  <div className="h-48 bg-slate-900 relative overflow-hidden">
+                    <img src={imgSrc} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={p.name} />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 backdrop-blur-sm">
+                      <button onClick={() => openEditProduct(p)} className="bg-white text-black p-3 rounded-full hover:bg-[var(--neon-cyan)] hover:scale-110 transition-all shadow-lg"><TrendingUp size={20} /></button>
+                      <button onClick={() => handleDeleteProduct(p.id)} className="bg-red-500 text-white p-3 rounded-full hover:bg-red-600 hover:scale-110 transition-all shadow-lg shadow-red-500/30"><Trash2 size={20} /></button>
+                    </div>
+                    <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                      <span className="font-bold text-[var(--neon-orange)] font-mono">${Number(p.price).toFixed(2)}</span>
+                    </div>
                   </div>
-                  <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                    <span className="font-bold text-[var(--neon-orange)] font-mono">${Number(p.price).toFixed(2)}</span>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h4 className="font-bold text-white text-lg mb-2 font-display uppercase tracking-wide">{p.name}</h4>
+                    <p className="text-xs text-slate-400 line-clamp-2 font-mono leading-relaxed">{p.description}</p>
                   </div>
                 </div>
-                <div className="p-6 flex-1 flex flex-col">
-                  <h4 className="font-bold text-white text-lg mb-2 font-display uppercase tracking-wide">{p.name}</h4>
-                  <p className="text-xs text-slate-400 line-clamp-2 font-mono leading-relaxed">{p.description}</p>
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       )}
@@ -636,15 +669,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ orders = [], onUpdateSt
               <div className="p-6 border-b border-white/10 bg-white/5 flex justify-between items-center">
                 <h3 className="font-bold text-white font-display uppercase tracking-wider text-sm">Cuentas Registradas</h3>
                 <span className="bg-white/10 px-3 py-1 rounded-md text-[10px] font-bold text-slate-300 border border-white/10 font-mono">
-                  {users.length} almas
+                  {allUsers.length} almas
                 </span>
               </div>
 
               <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto custom-scrollbar">
-                {users.length === 0 ? (
+                {allUsers.length === 0 ? (
                   <div className="p-12 text-center text-slate-500 font-mono text-sm">No hay usuarios configurados.</div>
                 ) : (
-                  users.map(user => (
+                  allUsers.map(user => (
                     <div key={user.id} className="p-5 flex items-center justify-between hover:bg-white/5 transition-colors group">
                       <div className="flex items-center gap-5">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-black font-bold shadow-[0_0_15px_rgba(0,0,0,0.3)]
@@ -671,7 +704,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ orders = [], onUpdateSt
 
                       <div className="flex items-center gap-4">
                         {/* Don't allow deleting the last admin */}
-                        {user.role !== 'admin' || users.filter(u => u.role === 'admin').length > 1 ? (
+                        {user.role !== 'admin' || allUsers.filter(u => u.role === 'admin').length > 1 ? (
                           <button
                             onClick={() => onDeleteUser && onDeleteUser(user.id)}
                             className="p-3 text-slate-500 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 border border-transparent hover:border-red-500/30"

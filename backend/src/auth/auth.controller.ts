@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Get, Body } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -31,5 +31,10 @@ export class AuthController {
     @ApiOperation({ summary: 'Setup initial data (seed)' })
     setup() {
         return this.authService.setup();
+    }
+    @Get('users')
+    @ApiOperation({ summary: 'Get all users' })
+    findAll() {
+        return this.authService.findAll();
     }
 }
